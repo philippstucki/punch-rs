@@ -1,19 +1,21 @@
 // #[allow(unused_variables, unused_imports)]
-use rusqlite::Connection;
+use rusqlite::{Connection, Result, NO_PARAMS};
 use std::error::Error;
 use std::path::Path;
 
 mod migration;
+mod schema;
 
 const DB_FILE: &'static str = "./punch.sqlite";
 
-fn get_connection() -> Connection {
-    Connection::open(Path::new(DB_FILE))
-        .unwrap_or_else(|error| panic!("Unable to open DB: {:?}", error))
+fn get_connection() -> Result<Connection> {
+    let conn = Connection::open(Path::new(DB_FILE))?;
+    conn.execute("PRAGMA foreign_keys = ON;", NO_PARAMS)?;
+    Ok(conn)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let db = get_connection();
-    migration::migrate(&db)?;
+    let mut conn = get_connection()?;
+    schema::migrate(&mut conn)?;
     Ok(())
 }
