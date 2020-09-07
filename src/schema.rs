@@ -35,7 +35,16 @@ fn migration_1_initial_structure(conn: &Connection) -> Result<bool> {
 }
 
 pub fn migrate(conn: &mut Connection) -> Result<()> {
+    let migrations = vec![migration::Migration {
+        id: 1,
+        migration_fn: migration_1_initial_structure,
+    }];
     migration::create_schema_migrations_table(&conn)?;
-    migration::execute_migration(conn, 1, migration_1_initial_structure)?;
+
+    migrations
+        .into_iter()
+        .map(|m| migration::execute_migration(conn, m))
+        .collect::<Result<Vec<_>>>()?;
+
     Ok(())
 }

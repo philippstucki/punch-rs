@@ -1,6 +1,12 @@
 use rusqlite::{Connection, OptionalExtension, Result, NO_PARAMS};
 
-// mod migration;
+pub struct Migration<MFN>
+where
+    MFN: Fn(&Connection) -> Result<bool>,
+{
+    pub id: u64,
+    pub migration_fn: MFN,
+}
 
 pub fn create_schema_migrations_table(conn: &Connection) -> Result<usize> {
     println!("Creating schema migrations table...");
@@ -28,16 +34,16 @@ fn has_migration(conn: &Connection, id: u64) -> Result<bool> {
     }
 }
 
-pub fn execute_migration<MF>(conn: &mut Connection, id: u64, migration: MF) -> Result<()>
+pub fn execute_migration<MF>(conn: &mut Connection, migration: Migration<MF>) -> Result<()>
 where
     MF: Fn(&Connection) -> Result<bool>,
 {
-    if !has_migration(conn, id)? {
+    if !has_migration(conn, migration.id)? {
         let tx = conn.transaction()?;
-        migration(&tx)?;
+        (migration.migration_fn)(&tx)?;
         tx.execute(
             "INSERT INTO schema_migrations (id, executed_on) VALUES (?, datetime('now'))",
-            &[id.to_string()],
+            &[migration.id.to_string()],
         )?;
         tx.commit()?;
     }
