@@ -34,7 +34,7 @@ fn has_migration(conn: &Connection, id: u64) -> Result<bool> {
     }
 }
 
-pub fn execute_migration<MF>(conn: &mut Connection, migration: Migration<MF>) -> Result<()>
+fn execute_migration<MF>(conn: &mut Connection, migration: Migration<MF>) -> Result<()>
 where
     MF: Fn(&Connection) -> Result<bool>,
 {
@@ -47,5 +47,19 @@ where
         )?;
         tx.commit()?;
     }
+    Ok(())
+}
+
+pub fn execute_migrations<MF>(conn: &mut Connection, migrations: Vec<Migration<MF>>) -> Result<()>
+where
+    MF: Fn(&Connection) -> Result<bool>,
+{
+    create_schema_migrations_table(&conn)?;
+
+    migrations
+        .into_iter()
+        .map(|m| execute_migration(conn, m))
+        .collect::<Result<Vec<_>>>()?;
+
     Ok(())
 }

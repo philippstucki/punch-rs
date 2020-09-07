@@ -39,12 +39,6 @@ pub fn migrate(conn: &mut Connection) -> Result<()> {
         id: 1,
         migration_fn: migration_1_initial_structure,
     }];
-    migration::create_schema_migrations_table(&conn)?;
-
-    migrations
-        .into_iter()
-        .map(|m| migration::execute_migration(conn, m))
-        .collect::<Result<Vec<_>>>()?;
-
+    migration::execute_migrations(conn, migrations)?;
     Ok(())
 }
