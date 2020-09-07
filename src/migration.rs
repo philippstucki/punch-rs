@@ -36,7 +36,7 @@ where
         let tx = conn.transaction()?;
         migration(&tx)?;
         tx.execute(
-            "INSERT INTO schema_migrations (id, executed_on) VALUES (?, date('now'))",
+            "INSERT INTO schema_migrations (id, executed_on) VALUES (?, datetime('now'))",
             &[id.to_string()],
         )?;
         tx.commit()?;
