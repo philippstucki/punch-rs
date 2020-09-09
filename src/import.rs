@@ -1,16 +1,16 @@
 // use serde_json::Result;
+use rusqlite;
+use rusqlite::Connection;
 use std::convert::From;
 use std::error::Error;
 use std::fs;
 use std::result::Result;
 
-use rusqlite;
-use rusqlite::Connection;
-
 use crate::db;
 
-//               0        1       2        3      4         5
+// each frame in watson is a json array with indices correspondig to the following fields:
 // HEADERS = ('start', 'stop', 'project', 'id', 'tags', 'updated_at')
+//               0        1       2        3      4         5
 
 type RawFrame = (u64, u64, String, String, Vec<String>, u64);
 #[derive(Debug)]
@@ -32,20 +32,25 @@ impl From<RawFrame> for Frame {
 }
 
 fn import_watson_frame(conn: &mut Connection, frame: Frame) -> rusqlite::Result<()> {
-    let project = db::get_project_by_name(conn, frame.project);
-    // println()
+    let tx = conn.transaction()?;
+
+    let project_id = match db::get_project_by_name(&tx, &frame.project)? {
+        None => db::create_project(&tx, &frame.project)?,
+        Some(p) => p.id,
+    };
+    println!("project '{}' has id {}", &frame.project, project_id);
+    tx.commit()?;
     Ok(())
 }
 
 pub fn import_watson_frames(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
-    let data = fs::read_to_string("./frames.json").unwrap();
+    let data = fs::read_to_string("./watson/frames.json").unwrap();
     let frames: Vec<RawFrame> = serde_json::from_str(&data)?;
 
     frames
         .into_iter()
         .map(|raw| Frame::from(raw))
         .for_each(|frame| {
-            println!("{:?}", frame);
             import_watson_frame(conn, frame).unwrap();
         });
 
