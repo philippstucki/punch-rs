@@ -1,34 +1,34 @@
 use crate::migration;
-use rusqlite::{Connection, Result, NO_PARAMS};
+use rusqlite::{Connection, Result};
 
 fn migration_1_initial_structure(conn: &Connection) -> Result<bool> {
     println!("Executing migration 1: initial structure");
 
-    conn.execute(
-        "CREATE TABLE project (
+    conn.execute_batch(
+        "
+        CREATE TABLE project (
             project_id INTEGER PRIMARY KEY NOT NULL,
             name TEXT NOT NULL,
             CONSTRAINT name_unique UNIQUE (name)
-        )",
-        NO_PARAMS,
-    )?;
-    conn.execute(
-        "CREATE TABLE tag (
+        );
+        CREATE INDEX project_name ON project (name);
+
+        CREATE TABLE tag (
             tag_id INTEGER PRIMARY KEY NOT NULL,
             name TEXT NOT NULL,
             project_id INTEGER NOT NULL,
-            FOREIGN KEY (project_id) REFERENCES project (project_id),
-            CONSTRAINT name_unique UNIQUE (name)
-        )",
-        NO_PARAMS,
-    )?;
-    conn.execute(
-        "CREATE TABLE timeslice (
+            FOREIGN KEY (project_id) REFERENCES project (project_id)
+        );
+        CREATE UNIQUE INDEX tag_project_unique ON tag (name, project_id);
+
+        CREATE TABLE timeslice (
             id INTEGER PRIMARY KEY NOT NULL,
+            project_id INTEGER NOT NULL,
             started_on DATETIME NOT NULL,
             stopped_on DATETIME
-        )",
-        NO_PARAMS,
+        );
+
+        ",
     )?;
 
     Ok(true)

@@ -3,6 +3,8 @@ use rusqlite::{Connection, Result, NO_PARAMS};
 use std::error::Error;
 use std::path::Path;
 
+mod db;
+mod import;
 mod migration;
 mod schema;
 
@@ -17,5 +19,8 @@ fn get_connection() -> Result<Connection> {
 fn main() -> Result<(), Box<dyn Error>> {
     let mut conn = get_connection()?;
     schema::migrate(&mut conn)?;
+
+    import::import_watson_frames(&mut conn)?;
+
     Ok(())
 }
