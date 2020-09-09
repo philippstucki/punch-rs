@@ -27,7 +27,6 @@ fn migration_1_initial_structure(conn: &Connection) -> Result<bool> {
             started_on DATETIME NOT NULL,
             stopped_on DATETIME
         );
-
         ",
     )?;
 
