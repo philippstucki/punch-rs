@@ -37,8 +37,6 @@ fn import_watson_frame(conn: &Connection, frame: Frame) -> rusqlite::Result<()> 
         None => db::project_create(&conn, &frame.project)?,
         Some(p) => p.id,
     };
-    // println!("importing frame: {:?}", frame);
-    // println!("project '{}' has id {}", &frame.project, project_id);
 
     db::timeslice_create(
         &conn,
@@ -53,8 +51,8 @@ fn import_watson_frame(conn: &Connection, frame: Frame) -> rusqlite::Result<()> 
     Ok(())
 }
 
-pub fn import_watson_frames(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
-    let data = fs::read_to_string("./watson/frames.json").unwrap();
+pub fn import_watson_frames(conn: &mut Connection, file_name: &str) -> Result<(), Box<dyn Error>> {
+    let data = fs::read_to_string(file_name).unwrap();
     let frames: Vec<RawFrame> = serde_json::from_str(&data)?;
     let tx = conn.transaction()?;
 
