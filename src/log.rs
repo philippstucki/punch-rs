@@ -28,6 +28,16 @@ struct LogTimeslice {
     duration: Duration,
     project_name: String,
 }
+
+fn group_slices_by_day(slices: Vec<LogTimeslice>) -> Vec<(String, Vec<LogTimeslice>)> {
+    slices
+        .into_iter()
+        .group_by(|r| r.day.clone())
+        .into_iter()
+        .map(|(day, day_slices)| (day, day_slices.collect::<Vec<LogTimeslice>>()))
+        .collect()
+}
+
 pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
@@ -43,7 +53,7 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     ",
     )?;
 
-    let grouped_slices = stmt
+    let slices = stmt
         .query_map(NO_PARAMS, |row| {
             Ok(LogTimeslice {
                 id: row.get(0)?,
@@ -55,12 +65,11 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
             })
         })?
         .map(|r| r.unwrap())
-        .into_iter()
-        .group_by(|r| r.day.clone());
+        .collect::<Vec<LogTimeslice>>();
 
-    for (day, slices) in grouped_slices.into_iter() {
+    for (day, slices) in group_slices_by_day(slices) {
         println!("day: {}", day);
-        println!("group: {:?}", slices.collect::<Vec<LogTimeslice>>())
+        println!("group: {:?}", slices)
     }
 
     Ok(())
