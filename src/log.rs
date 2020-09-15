@@ -1,5 +1,6 @@
-use chrono::{DateTime, Duration, FixedOffset, Utc};
-use rusqlite::Connection;
+use chrono::{DateTime, Duration, FixedOffset};
+use rusqlite::{Connection, NO_PARAMS};
+use std::collections::BTreeMap;
 use std::error::Error;
 
 // use crate::db;
@@ -21,10 +22,27 @@ use std::error::Error;
 #[derive(Debug)]
 struct LogTimeslice {
     id: i64,
+    day: String,
     started_on: DateTime<FixedOffset>,
     stopped_on: DateTime<FixedOffset>,
     duration: Duration,
     project_name: String,
+}
+
+fn group_slices_by_day(slices: &Vec<LogTimeslice>) -> BTreeMap<String, Vec<&LogTimeslice>> {
+    let mut map = BTreeMap::new();
+
+    for slice in slices {
+        let key = &slice.day;
+        if let Some(v) = map.get_mut(key) {
+        } else {
+            map.insert(String::from(key), vec![slice.clone()]);
+        }
+    }
+
+    println!("map: {:?}", map);
+
+    map
 }
 
 pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
@@ -42,27 +60,25 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     ",
     )?;
 
-    let row_iter = stmt.query_map_named(&[], |row| {
-        Ok(LogTimeslice {
-            id: row.get(0)?,
-            started_on: DateTime::parse_from_rfc3339(&*row.get::<_, String>(2)?).unwrap(),
-            stopped_on: DateTime::parse_from_rfc3339(&*row.get::<_, String>(3)?).unwrap(),
-            duration: Duration::seconds(0),
-            project_name: row.get(4)?,
-        })
-    })?;
+    let rows: Vec<LogTimeslice> = stmt
+        .query_map(NO_PARAMS, |row| {
+            Ok(LogTimeslice {
+                id: row.get(0)?,
+                day: row.get(1)?,
+                started_on: DateTime::parse_from_rfc3339(&*row.get::<_, String>(2)?).unwrap(),
+                stopped_on: DateTime::parse_from_rfc3339(&*row.get::<_, String>(3)?).unwrap(),
+                duration: Duration::seconds(0),
+                project_name: row.get(4)?,
+            })
+        })?
+        .map(|r| r.unwrap())
+        .collect();
 
-    for row in row_iter {
+    let grouped_rows = group_slices_by_day(&rows);
+
+    for row in rows {
         println!("{:?}", row);
     }
-
-    // let person_iter = stmt.query_map(params![], |row| {
-    //     Ok(Person {
-    //         id: row.get(0)?,
-    //         name: row.get(1)?,
-    //         data: row.get(2)?,
-    //     })
-    // })?;
 
     Ok(())
 }
