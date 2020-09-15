@@ -1,6 +1,6 @@
 use chrono::{DateTime, Duration, FixedOffset};
+use itertools::Itertools;
 use rusqlite::{Connection, NO_PARAMS};
-use std::collections::BTreeMap;
 use std::error::Error;
 
 // use crate::db;
@@ -28,23 +28,6 @@ struct LogTimeslice {
     duration: Duration,
     project_name: String,
 }
-
-fn group_slices_by_day(slices: &Vec<LogTimeslice>) -> BTreeMap<String, Vec<&LogTimeslice>> {
-    let mut map = BTreeMap::new();
-
-    for slice in slices {
-        let key = &slice.day;
-        if let Some(v) = map.get_mut(key) {
-        } else {
-            map.insert(String::from(key), vec![slice.clone()]);
-        }
-    }
-
-    println!("map: {:?}", map);
-
-    map
-}
-
 pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
@@ -60,7 +43,7 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     ",
     )?;
 
-    let rows: Vec<LogTimeslice> = stmt
+    let grouped_slices = stmt
         .query_map(NO_PARAMS, |row| {
             Ok(LogTimeslice {
                 id: row.get(0)?,
@@ -72,12 +55,12 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
             })
         })?
         .map(|r| r.unwrap())
-        .collect();
+        .into_iter()
+        .group_by(|r| r.day.clone());
 
-    let grouped_rows = group_slices_by_day(&rows);
-
-    for row in rows {
-        println!("{:?}", row);
+    for (day, slices) in grouped_slices.into_iter() {
+        println!("day: {}", day);
+        println!("group: {:?}", slices.collect::<Vec<LogTimeslice>>())
     }
 
     Ok(())
