@@ -22,7 +22,7 @@ fn migration_1_initial_structure(conn: &Connection) -> Result<bool> {
         CREATE UNIQUE INDEX tag_project_unique ON tag (title, project_id);
 
         CREATE TABLE timeslice (
-            id INTEGER PRIMARY KEY NOT NULL,
+            timeslice_id INTEGER PRIMARY KEY NOT NULL,
             project_id INTEGER NOT NULL,
             started_on DATETIME NOT NULL,
             stopped_on DATETIME

@@ -6,6 +6,7 @@ use std::path::Path;
 
 mod db;
 mod import;
+mod log;
 mod migration;
 mod schema;
 
@@ -35,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .help("input file to use for import"),
                 ),
         )
-        .subcommand(SubCommand::with_name("log").about("log recemt work"))
+        .subcommand(SubCommand::with_name("log").about("log recent work"))
         .get_matches();
 
     if let Some(import_matches) = matches.subcommand_matches("import") {
@@ -44,6 +45,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             let mut conn = get_connection()?;
             import::import_watson_frames(&mut conn, import_file)?;
         }
+    }
+
+    if let Some(_args) = matches.subcommand_matches("log") {
+        log::log_command(&mut get_connection()?)?;
     }
 
     Ok(())
