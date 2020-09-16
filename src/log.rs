@@ -50,6 +50,7 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         FROM timeslice t
         JOIN project p USING(project_id)
         ORDER BY day desc
+        LIMIT 20
     ",
     )?;
 
@@ -68,8 +69,17 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         .collect::<Vec<LogTimeslice>>();
 
     for (day, slices) in group_slices_by_day(slices) {
-        println!("day: {}", day);
-        println!("group: {:?}", slices)
+        println!("{}\n", day);
+
+        for slice in slices {
+            println!(
+                "    {} — {}",
+                slice.started_on.format("%H:%M"),
+                slice.stopped_on.format("%H:%M")
+            );
+        }
+
+        println!("\n")
     }
 
     Ok(())
