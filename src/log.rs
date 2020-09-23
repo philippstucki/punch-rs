@@ -1,9 +1,9 @@
-use chrono::{DateTime, Duration, FixedOffset};
+use chrono::{DateTime, Duration, Local};
 use itertools::Itertools;
 use rusqlite::{Connection, NO_PARAMS};
 use std::error::Error;
-
-// use crate::db;
+use std::fmt::Write;
+use std::result::Result;
 
 /*
 # output format:
@@ -23,10 +23,34 @@ use std::error::Error;
 struct LogTimeslice {
     id: i64,
     day: String,
-    started_on: DateTime<FixedOffset>,
-    stopped_on: DateTime<FixedOffset>,
+    started_on: DateTime<Local>,
+    stopped_on: DateTime<Local>,
     duration: Duration,
     project_name: String,
+}
+
+impl LogTimeslice {
+    fn new(
+        id: i64,
+        day: &str,
+        started_on: &str,
+        stopped_on: &str,
+        project_name: &str,
+    ) -> LogTimeslice {
+        let started_on: DateTime<Local> =
+            DateTime::from(DateTime::parse_from_rfc3339(started_on).unwrap());
+        let stopped_on: DateTime<Local> =
+            DateTime::from(DateTime::parse_from_rfc3339(stopped_on).unwrap());
+
+        LogTimeslice {
+            id,
+            day: String::from(day),
+            started_on,
+            stopped_on,
+            duration: stopped_on - started_on,
+            project_name: String::from(project_name),
+        }
+    }
 }
 
 fn group_slices_by_day(slices: Vec<LogTimeslice>) -> Vec<(String, Vec<LogTimeslice>)> {
@@ -36,6 +60,18 @@ fn group_slices_by_day(slices: Vec<LogTimeslice>) -> Vec<(String, Vec<LogTimesli
         .into_iter()
         .map(|(day, day_slices)| (day, day_slices.collect::<Vec<LogTimeslice>>()))
         .collect()
+}
+
+fn duration_as_hms_string(duration: &Duration) -> Result<String, Box<dyn Error>> {
+    let mut out = String::new();
+    write!(
+        out,
+        "{:2}h {:2}m {:2}s",
+        duration.num_hours(),
+        duration.num_minutes() % 60,
+        duration.num_seconds() % 60
+    )?;
+    Ok(out)
 }
 
 pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
@@ -50,20 +86,18 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         FROM timeslice t
         JOIN project p USING(project_id)
         ORDER BY day desc
-        LIMIT 20
     ",
     )?;
 
     let slices = stmt
         .query_map(NO_PARAMS, |row| {
-            Ok(LogTimeslice {
-                id: row.get(0)?,
-                day: row.get(1)?,
-                started_on: DateTime::parse_from_rfc3339(&*row.get::<_, String>(2)?).unwrap(),
-                stopped_on: DateTime::parse_from_rfc3339(&*row.get::<_, String>(3)?).unwrap(),
-                duration: Duration::seconds(0),
-                project_name: row.get(4)?,
-            })
+            Ok(LogTimeslice::new(
+                row.get(0)?,
+                &*row.get::<_, String>(1)?,
+                &*row.get::<_, String>(2)?,
+                &*row.get::<_, String>(3)?,
+                &*row.get::<_, String>(4)?,
+            ))
         })?
         .map(|r| r.unwrap())
         .collect::<Vec<LogTimeslice>>();
@@ -73,9 +107,11 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
 
         for slice in slices {
             println!(
-                "    {} — {}",
-                slice.started_on.format("%H:%M"),
-                slice.stopped_on.format("%H:%M")
+                "    {started_on} — {stopped_on} {duration:>14} {project_name}",
+                started_on = slice.started_on.format("%H:%M:%S"),
+                stopped_on = slice.stopped_on.format("%H:%M:%S"),
+                duration = duration_as_hms_string(&slice.duration)?,
+                project_name = slice.project_name
             );
         }
 
