@@ -18,13 +18,14 @@ Show recently logged work grouped by day:
 
 # Todo
 
-- [ ] add command / output similar to `watson log`
-- [ ] add n2n relation timeslice <==> tag
-- [ ] import tags from watson frames
 - [ ] add start command
 - [ ] add stop command
+- [ ] ensure db consistency s.t. only one slice can be in running state. using a trigger on insert/update?
+- [ ] add n2n relation timeslice <==> tag
+- [ ] import tags from watson frames
 
 # Done
 
+- [x] add command / output similar to `watson log`
 - [x] use clap to define commands
 - [x] add import command
