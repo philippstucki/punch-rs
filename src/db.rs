@@ -40,25 +40,18 @@ pub struct Timeslice {
     pub stopped_on: Option<DateTime<Utc>>,
 }
 pub fn timeslice_create(conn: &Connection, timeslice: Timeslice) -> Result<i64> {
-    if let Some(stopped_on) = timeslice.stopped_on {
-        conn.execute(
-            "INSERT INTO timeslice (project_id, started_on, stopped_on) VALUES (?1, ?2, ?3);",
-            params![
-                timeslice.project_id,
-                timeslice.started_on,
-                stopped_on
-            ],
-        )?;
-        Ok(conn.last_insert_rowid())
+    let mut params: Vec<&dyn rusqlite::ToSql> =
+        params![timeslice.project_id, timeslice.started_on].to_vec();
+
+    if let Some(stopped_on) = timeslice.stopped_on.as_ref() {
+        params.push(stopped_on);
     } else {
-        conn.execute(
-            "INSERT INTO timeslice (project_id, started_on) VALUES (?1, ?2);",
-            params![timeslice.project_id, timeslice.started_on],
-        )?;
-        Ok(conn.last_insert_rowid())
+        params.push(&rusqlite::types::Null);
     }
+
+    conn.execute(
+        "INSERT INTO timeslice (project_id, started_on, stopped_on) VALUES (?1, ?2, ?3);",
+        params,
+    )?;
+    Ok(conn.last_insert_rowid())
 }
-
-// pub fn timeslice_get_by_id(conn: &Connection)-> Result<Timeslice> {
-
-// }
