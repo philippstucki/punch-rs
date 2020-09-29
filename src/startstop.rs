@@ -1,7 +1,10 @@
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Local, Utc};
 use rusqlite::{Connection, OptionalExtension, NO_PARAMS};
 use std::error::Error;
 use std::result::Result;
+
+use crate::db;
+use crate::datetime;
 
 #[derive(Debug)]
 struct RunningTimeslice {
@@ -12,11 +15,9 @@ struct RunningTimeslice {
 
 impl RunningTimeslice {
     fn new(id: i64, started_on: &str, project_name: &str) -> RunningTimeslice {
-        let started_on: DateTime<Local> =
-            DateTime::from(DateTime::parse_from_rfc3339(started_on).unwrap());
         RunningTimeslice {
             id,
-            started_on,
+            started_on: datetime::as_local(datetime::from_string(started_on)),
             project_name: String::from(project_name),
         }
     }
@@ -38,10 +39,26 @@ fn get_running_slice(conn: &Connection) -> Result<Option<RunningTimeslice>, Box<
     }
 }
 
-pub fn start_command(conn: &Connection) -> Result<(), Box<dyn Error>> {
+pub fn start_command(conn: &mut Connection, project_name: &str) -> Result<(), Box<dyn Error>> {
     match get_running_slice(conn)? {
+        None => {
+            let tx = conn.transaction()?;
+            let project_id = match db::project_get_by_name(&tx, project_name)? {
+                Some(project) => project.id,
+                None => db::project_create(&tx, project_name)?,
+            };
+            db::timeslice_create(
+                &tx,
+                db::Timeslice {
+                    id: None,
+                    project_id,
+                    started_on: Utc::now(),
+                    stopped_on: None,
+                },
+            )?;
+            tx.commit()?;
+        }
         Some(slice) => println!("found running slice: {:?}", slice),
-        None => println!("no running slice found."),
     };
     Ok(())
 }

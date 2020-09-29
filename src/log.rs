@@ -5,6 +5,8 @@ use std::error::Error;
 use std::fmt::Write;
 use std::result::Result;
 
+use crate::datetime;
+
 /*
 # output format:
 
@@ -37,10 +39,8 @@ impl LogTimeslice {
         stopped_on: &str,
         project_name: &str,
     ) -> LogTimeslice {
-        let started_on: DateTime<Local> =
-            DateTime::from(DateTime::parse_from_rfc3339(started_on).unwrap());
-        let stopped_on: DateTime<Local> =
-            DateTime::from(DateTime::parse_from_rfc3339(stopped_on).unwrap());
+        let started_on = datetime::as_local(datetime::from_string(started_on));
+        let stopped_on = datetime::as_local(datetime::from_string(stopped_on));
 
         LogTimeslice {
             id,
@@ -85,6 +85,7 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
             p.title
         FROM timeslice t
         JOIN project p USING(project_id)
+        WHERE stopped_on IS NOT NULL
         ORDER BY day desc
     ",
     )?;

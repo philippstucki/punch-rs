@@ -10,6 +10,7 @@ mod log;
 mod migration;
 mod schema;
 mod startstop;
+mod datetime;
 
 const DB_FILE: &'static str = "./punch.sqlite";
 
@@ -38,7 +39,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ),
         )
         .subcommand(SubCommand::with_name("log").about("log recent work"))
-        .subcommand(SubCommand::with_name("start").about("start logging time"))
+        .subcommand(
+            SubCommand::with_name("start")
+                .about("start logging time")
+                .arg(
+                    Arg::with_name("project")
+                        .required(true)
+                        .index(1)
+                        .help("project name"),
+                ),
+        )
         .get_matches();
 
     if let Some(import_matches) = matches.subcommand_matches("import") {
@@ -53,8 +63,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         log::log_command(&mut get_connection()?)?;
     }
 
-    if let Some(_args) = matches.subcommand_matches("start") {
-        startstop::start_command(&mut get_connection()?)?;
+    if let Some(start_matches) = matches.subcommand_matches("start") {
+        if let Some(project_name) = start_matches.value_of("project") {
+            startstop::start_command(&mut get_connection()?, project_name)?;
+        }
     }
 
     Ok(())

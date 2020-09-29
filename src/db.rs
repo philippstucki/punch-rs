@@ -37,16 +37,28 @@ pub struct Timeslice {
     pub id: Option<i64>,
     pub project_id: i64,
     pub started_on: DateTime<Utc>,
-    pub stopped_on: DateTime<Utc>,
+    pub stopped_on: Option<DateTime<Utc>>,
 }
 pub fn timeslice_create(conn: &Connection, timeslice: Timeslice) -> Result<i64> {
-    conn.execute(
-        "INSERT INTO timeslice (project_id, started_on, stopped_on) VALUES (?1, ?2, ?3);",
-        params![
-            timeslice.project_id,
-            timeslice.started_on,
-            timeslice.stopped_on
-        ],
-    )?;
-    Ok(conn.last_insert_rowid())
+    if let Some(stopped_on) = timeslice.stopped_on {
+        conn.execute(
+            "INSERT INTO timeslice (project_id, started_on, stopped_on) VALUES (?1, ?2, ?3);",
+            params![
+                timeslice.project_id,
+                timeslice.started_on,
+                stopped_on
+            ],
+        )?;
+        Ok(conn.last_insert_rowid())
+    } else {
+        conn.execute(
+            "INSERT INTO timeslice (project_id, started_on) VALUES (?1, ?2);",
+            params![timeslice.project_id, timeslice.started_on],
+        )?;
+        Ok(conn.last_insert_rowid())
+    }
 }
+
+// pub fn timeslice_get_by_id(conn: &Connection)-> Result<Timeslice> {
+
+// }

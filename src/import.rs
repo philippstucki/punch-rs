@@ -44,7 +44,7 @@ fn import_watson_frame(conn: &Connection, frame: Frame) -> rusqlite::Result<()> 
             id: None,
             project_id: project_id,
             started_on: frame.start,
-            stopped_on: frame.stop,
+            stopped_on: Some(frame.stop),
         },
     )?;
 
