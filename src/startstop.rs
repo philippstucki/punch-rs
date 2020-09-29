@@ -3,8 +3,8 @@ use rusqlite::{Connection, OptionalExtension, NO_PARAMS};
 use std::error::Error;
 use std::result::Result;
 
-use crate::db;
 use crate::datetime;
+use crate::db;
 
 #[derive(Debug)]
 struct RunningTimeslice {
@@ -26,12 +26,12 @@ impl RunningTimeslice {
 fn get_running_slice(conn: &Connection) -> Result<Option<RunningTimeslice>, Box<dyn Error>> {
     match conn
         .query_row::<RunningTimeslice, _, _>(
-            "SELECT t.timeslice_id, t.started_on, p.title FROM timeslice t JOIN project p WHERE t.stopped_on IS NULL",
+            "SELECT t.timeslice_id, t.started_on, p.title FROM timeslice t JOIN project p USING(project_id) WHERE t.stopped_on IS NULL",
             NO_PARAMS,
             |row| Ok(RunningTimeslice::new(
                  row.get(0)?,
                  &*row.get::<_, String>(1)?,
-                 &*row.get::<_, String>(1)?))
+                 &*row.get::<_, String>(2)?))
         )
         .optional()? {
         Some(slice) => Ok(Some(slice)),
