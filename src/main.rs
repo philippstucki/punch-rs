@@ -4,13 +4,13 @@ use rusqlite::{Connection, Result, NO_PARAMS};
 use std::error::Error;
 use std::path::Path;
 
+mod datetime;
 mod db;
 mod import;
 mod log;
 mod migration;
 mod schema;
 mod startstop;
-mod datetime;
 
 const DB_FILE: &'static str = "./punch.sqlite";
 
@@ -49,6 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .help("project name"),
                 ),
         )
+        .subcommand(SubCommand::with_name("stop").about("stop currently running slice"))
         .get_matches();
 
     if let Some(import_matches) = matches.subcommand_matches("import") {
@@ -67,6 +68,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         if let Some(project_name) = start_matches.value_of("project") {
             startstop::start_command(&mut get_connection()?, project_name)?;
         }
+    }
+
+    if let Some(_args) = matches.subcommand_matches("stop") {
+        startstop::stop_command(&mut get_connection()?)?;
     }
 
     Ok(())

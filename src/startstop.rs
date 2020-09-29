@@ -1,5 +1,5 @@
 use chrono::{DateTime, Local, Utc};
-use rusqlite::{Connection, OptionalExtension, NO_PARAMS};
+use rusqlite::{params, Connection, OptionalExtension, NO_PARAMS};
 use std::error::Error;
 use std::result::Result;
 
@@ -58,7 +58,24 @@ pub fn start_command(conn: &mut Connection, project_name: &str) -> Result<(), Bo
             )?;
             tx.commit()?;
         }
-        Some(slice) => println!("found running slice: {:?}", slice),
+        Some(slice) => println!(
+            "Slice already running for project {} started on {}",
+            slice.project_name,
+            datetime::format_as_hms(slice.started_on)
+        ),
+    };
+    Ok(())
+}
+
+pub fn stop_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
+    match get_running_slice(conn)? {
+        Some(slice) => {
+            conn.execute(
+                "UPDATE timeslice SET stopped_on = ?1 WHERE timeslice_id = ?2",
+                params![Utc::now(), slice.id],
+            )?;
+        }
+        None => println!("No running slice found."),
     };
     Ok(())
 }
