@@ -62,18 +62,6 @@ fn group_slices_by_day(slices: Vec<LogTimeslice>) -> Vec<(String, Vec<LogTimesli
         .collect()
 }
 
-fn duration_as_hms_string(duration: &Duration) -> Result<String, Box<dyn Error>> {
-    let mut out = String::new();
-    write!(
-        out,
-        "{:2}h {:2}m {:2}s",
-        duration.num_hours(),
-        duration.num_minutes() % 60,
-        duration.num_seconds() % 60
-    )?;
-    Ok(out)
-}
-
 pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
@@ -111,7 +99,7 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
                 "    {started_on} — {stopped_on} {duration:>14} {project_name}",
                 started_on = slice.started_on.format("%H:%M:%S"),
                 stopped_on = slice.stopped_on.format("%H:%M:%S"),
-                duration = duration_as_hms_string(&slice.duration)?,
+                duration = datetime::duration_as_hms_string(&slice.duration)?,
                 project_name = slice.project_name
             );
         }
