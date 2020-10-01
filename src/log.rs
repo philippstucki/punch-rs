@@ -39,8 +39,8 @@ impl LogTimeslice {
         stopped_on: &str,
         project_name: &str,
     ) -> LogTimeslice {
-        let started_on = datetime::as_local(datetime::from_string(started_on));
-        let stopped_on = datetime::as_local(datetime::from_string(stopped_on));
+        let started_on = datetime::as_local(datetime::from_rfc3339_string(started_on));
+        let stopped_on = datetime::as_local(datetime::from_rfc3339_string(stopped_on));
 
         LogTimeslice {
             id,
@@ -58,7 +58,7 @@ fn group_slices_by_day(slices: Vec<LogTimeslice>) -> Vec<(String, Vec<LogTimesli
         .into_iter()
         .group_by(|r| r.day.clone())
         .into_iter()
-        .map(|(day, day_slices)| (day, day_slices.collect::<Vec<LogTimeslice>>()))
+        .map(|(day, day_slices)| (day, day_slices.collect()))
         .collect()
 }
 

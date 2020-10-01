@@ -17,7 +17,7 @@ impl RunningTimeslice {
     fn new(id: i64, started_on: &str, project_name: &str) -> RunningTimeslice {
         RunningTimeslice {
             id,
-            started_on: datetime::as_local(datetime::from_string(started_on)),
+            started_on: datetime::as_local(datetime::from_rfc3339_string(started_on)),
             project_name: String::from(project_name),
         }
     }
