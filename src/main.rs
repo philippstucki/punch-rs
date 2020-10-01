@@ -13,10 +13,17 @@ mod schema;
 mod startstop;
 mod summarize;
 
-const DB_FILE: &'static str = "./punch.sqlite";
+const DEFAULT_DB_FILE: &'static str = "./punch.sqlite";
 
-fn get_connection() -> Result<Connection> {
-    let mut conn = Connection::open(Path::new(DB_FILE))?;
+fn get_db_filename<'a>(default_value: &'a str, option_value: Option<&'a str>) -> &'a str {
+    match option_value {
+        Some(v) => v,
+        None => default_value,
+    }
+}
+
+fn get_connection(filename: &str) -> Result<Connection> {
+    let mut conn = Connection::open(Path::new(filename))?;
     conn.execute("PRAGMA foreign_keys = ON;", NO_PARAMS)?;
     schema::migrate(&mut conn)?;
     Ok(conn)
@@ -29,11 +36,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         .version("0.1")
         .author("Philipp Stucki <ps@stuckistucki.com>")
         .about("A cli based time logger")
+        .arg(
+            Arg::with_name("dbfile")
+                .global(true)
+                .short("f")
+                .long("dbfile")
+                .takes_value(true)
+                .value_name("file")
+                .help("database file to use. defaults to ./punch.sqlite"),
+        )
         .subcommand(
             SubCommand::with_name("import")
                 .about("import frames from watson")
                 .arg(
-                    Arg::with_name("FILE")
+                    Arg::with_name("file")
                         .required(true)
                         .index(1)
                         .help("input file to use for import"),
@@ -56,30 +72,32 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
+    let db_filename = get_db_filename(DEFAULT_DB_FILE, matches.value_of("dbfile"));
+
     if let Some(import_matches) = matches.subcommand_matches("import") {
         if let Some(import_file) = import_matches.value_of("FILE") {
             println!("importing from file: {}", import_file);
-            let mut conn = get_connection()?;
+            let mut conn = get_connection(db_filename)?;
             import::import_watson_frames(&mut conn, import_file)?;
         }
     }
 
     if let Some(_args) = matches.subcommand_matches("log") {
-        log::log_command(&mut get_connection()?)?;
+        log::log_command(&mut get_connection(db_filename)?)?;
     }
 
     if let Some(start_matches) = matches.subcommand_matches("start") {
         if let Some(project_name) = start_matches.value_of("project") {
-            startstop::start_command(&mut get_connection()?, project_name)?;
+            startstop::start_command(&mut get_connection(db_filename)?, project_name)?;
         }
     }
 
     if let Some(_args) = matches.subcommand_matches("stop") {
-        startstop::stop_command(&mut get_connection()?)?;
+        startstop::stop_command(&mut get_connection(db_filename)?)?;
     }
 
     if let Some(_args) = matches.subcommand_matches("summarize") {
-        summarize::summarize_command(&mut get_connection()?)?;
+        summarize::summarize_command(&mut get_connection(db_filename)?)?;
     }
 
     Ok(())
