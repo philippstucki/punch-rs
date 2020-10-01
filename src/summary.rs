@@ -1,6 +1,6 @@
-use chrono::{ Duration,  NaiveDate};
+use chrono::{Duration, NaiveDate};
 use itertools::Itertools;
-use rusqlite::{ Connection,  NO_PARAMS};
+use rusqlite::{Connection, NO_PARAMS};
 use std::error::Error;
 use std::result::Result;
 
@@ -32,11 +32,12 @@ pub fn summary_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
             CAST(
                 total((strftime(\"%J\",stopped_on)-strftime(\"%J\",started_on))*24*3600)
                 AS INTEGER
-            )  AS duration
+            )  AS duration,
+            max(stopped_on) AS row_order
         FROM timeslice t
         JOIN project p USING(project_id)
         GROUP BY group_period, t.project_id
-        ORDER BY group_period ASC
+        ORDER BY group_period, row_order ASC
     ",
     )?;
 
