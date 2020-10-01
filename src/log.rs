@@ -2,7 +2,6 @@ use chrono::{DateTime, Duration, Local};
 use itertools::Itertools;
 use rusqlite::{Connection, NO_PARAMS};
 use std::error::Error;
-use std::fmt::Write;
 use std::result::Result;
 
 use crate::datetime;

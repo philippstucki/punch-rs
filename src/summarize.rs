@@ -22,7 +22,7 @@ fn group_rows_by_period(rows: Vec<SummaryRow>) -> Vec<(NaiveDate, Vec<SummaryRow
         .collect()
 }
 
-pub fn summary_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
+pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
         SELECT

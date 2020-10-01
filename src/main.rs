@@ -11,7 +11,7 @@ mod log;
 mod migration;
 mod schema;
 mod startstop;
-mod summary;
+mod summarize;
 
 const DB_FILE: &'static str = "./punch.sqlite";
 
@@ -51,7 +51,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ),
         )
         .subcommand(SubCommand::with_name("stop").about("stop currently running slice"))
-        .subcommand(SubCommand::with_name("summary").about("show summary of slices grouped by period"))
+        .subcommand(
+            SubCommand::with_name("summarize").about("summarize work by project and time period"),
+        )
         .get_matches();
 
     if let Some(import_matches) = matches.subcommand_matches("import") {
@@ -76,8 +78,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         startstop::stop_command(&mut get_connection()?)?;
     }
 
-    if let Some(_args) = matches.subcommand_matches("summary") {
-        summary::summary_command(&mut get_connection()?)?;
+    if let Some(_args) = matches.subcommand_matches("summarize") {
+        summarize::summarize_command(&mut get_connection()?)?;
     }
 
     Ok(())
