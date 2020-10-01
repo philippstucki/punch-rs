@@ -1,6 +1,6 @@
-use chrono::{DateTime, Duration, Local, NaiveDate};
+use chrono::{ Duration,  NaiveDate};
 use itertools::Itertools;
-use rusqlite::{params, Connection, OptionalExtension, NO_PARAMS};
+use rusqlite::{ Connection,  NO_PARAMS};
 use std::error::Error;
 use std::result::Result;
 

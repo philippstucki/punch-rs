@@ -1,8 +1,8 @@
-use std::fmt::Display;
 use std::error::Error;
+use std::fmt::Display;
 use std::fmt::Write;
 
-use chrono::{DateTime, FixedOffset, Local, TimeZone, Utc, Duration};
+use chrono::{DateTime, Duration, FixedOffset, Local, TimeZone, Utc};
 
 // #[derive(Debug)]
 // pub struct DateTime<T: chrono::TimeZone> {
@@ -25,6 +25,7 @@ pub fn from_rfc3339_string(as_string: &str) -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339(as_string).unwrap()
 }
 
+#[allow(dead_code)]
 pub fn from_ymd_string(as_string: &str) -> DateTime<FixedOffset> {
     DateTime::parse_from_str(as_string, "%Y-%m-%d").unwrap()
 }
