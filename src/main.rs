@@ -12,6 +12,7 @@ mod migration;
 mod schema;
 mod startstop;
 mod summarize;
+mod tinylogger;
 
 const DEFAULT_DB_FILE: &'static str = "./punch.sqlite";
 
@@ -36,6 +37,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .version("0.1")
         .author("Philipp Stucki <ps@stuckistucki.com>")
         .about("A cli based time logger")
+        .arg(
+            Arg::with_name("verbose")
+                .global(true)
+                .short("v")
+                .long("verbose")
+                .help("enables logging of debug messages"),
+        )
         .arg(
             Arg::with_name("dbfile")
                 .global(true)
@@ -74,8 +82,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let db_filename = get_db_filename(DEFAULT_DB_FILE, matches.value_of("dbfile"));
 
+    tinylogger::init(matches.is_present("verbose"))?;
+
     if let Some(import_matches) = matches.subcommand_matches("import") {
-        if let Some(import_file) = import_matches.value_of("FILE") {
+        if let Some(import_file) = import_matches.value_of("file") {
             println!("importing from file: {}", import_file);
             let mut conn = get_connection(db_filename)?;
             import::import_watson_frames(&mut conn, import_file)?;

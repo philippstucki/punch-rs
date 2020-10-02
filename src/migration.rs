@@ -1,4 +1,5 @@
 use rusqlite::{Connection, OptionalExtension, Result, NO_PARAMS};
+use log::debug;
 
 pub struct Migration<MFN>
 where
@@ -9,7 +10,7 @@ where
 }
 
 pub fn create_schema_migrations_table(conn: &Connection) -> Result<usize> {
-    println!("Creating schema migrations table...");
+    debug!("Creating schema migrations table...");
     conn.execute(
         "CREATE TABLE IF NOT EXISTS schema_migrations(
         id INTEGER PRIMARY KEY NOT NULL,
@@ -20,7 +21,6 @@ pub fn create_schema_migrations_table(conn: &Connection) -> Result<usize> {
 }
 
 fn has_migration(conn: &Connection, id: u64) -> Result<bool> {
-    println!("Checking for migration #{}", id);
     let res: Option<bool> = conn
         .query_row(
             "SELECT id, executed_on FROM schema_migrations WHERE id = ?",
@@ -39,6 +39,7 @@ where
     MF: Fn(&Connection) -> Result<bool>,
 {
     if !has_migration(conn, migration.id)? {
+        debug!("Checking for migration #{}", migration.id);
         let tx = conn.transaction()?;
         (migration.migration_fn)(&tx)?;
         tx.execute(
