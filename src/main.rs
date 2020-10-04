@@ -13,6 +13,7 @@ mod schema;
 mod startstop;
 mod summarize;
 mod tinylogger;
+mod colors;
 
 const DEFAULT_DB_FILE: &'static str = "./punch.sqlite";
 

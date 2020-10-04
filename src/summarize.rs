@@ -4,6 +4,7 @@ use rusqlite::{Connection, NO_PARAMS};
 use std::error::Error;
 use std::result::Result;
 
+use crate::colors::Colors;
 use crate::datetime;
 
 #[derive(Debug)]
@@ -55,12 +56,15 @@ pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         .collect::<Vec<SummaryRow>>();
 
     for (period, rows) in group_rows_by_period(rows) {
-        println!("{group_day}", group_day = period.format("%Y-%m-%d"));
+        println!(
+            "{group_day}",
+            group_day = period.format("%Y-%m-%d").to_string().color_heading()
+        );
         for row in rows {
             println!(
                 "    {project_title:<20} {duration:>14}",
-                project_title = row.project_title,
-                duration = datetime::duration_as_hms_string(&row.total_time)?
+                project_title = row.project_title.to_string().color_project(),
+                duration = datetime::duration_as_hms_string(&row.total_time)?.to_string().color_duration()
             );
         }
         println!("\n");

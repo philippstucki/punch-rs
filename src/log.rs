@@ -4,6 +4,7 @@ use rusqlite::{Connection, NO_PARAMS};
 use std::error::Error;
 use std::result::Result;
 
+use crate::colors::Colors;
 use crate::datetime;
 
 /*
@@ -91,15 +92,17 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         .collect::<Vec<LogTimeslice>>();
 
     for (day, slices) in group_slices_by_day(slices) {
-        println!("{}\n", day);
+        println!("{}\n", day.to_string().color_heading());
 
         for slice in slices {
             println!(
                 "    {started_on} — {stopped_on} {duration:>14} {project_name}",
-                started_on = slice.started_on.format("%H:%M:%S"),
-                stopped_on = slice.stopped_on.format("%H:%M:%S"),
-                duration = datetime::duration_as_hms_string(&slice.duration)?,
-                project_name = slice.project_name
+                started_on = slice.started_on.format("%H:%M:%S").to_string().color_time(),
+                stopped_on = slice.stopped_on.format("%H:%M:%S").to_string().color_time(),
+                duration = datetime::duration_as_hms_string(&slice.duration)?
+                    .to_string()
+                    .color_duration(),
+                project_name = slice.project_name.to_string().color_project()
             );
         }
 
