@@ -38,7 +38,7 @@ fn import_watson_frame(conn: &Connection, frame: Frame) -> rusqlite::Result<()> 
         Some(p) => p.id,
     };
 
-    db::timeslice_create(
+    let timeslice_id = db::timeslice_create(
         &conn,
         db::Timeslice {
             id: None,
@@ -47,6 +47,21 @@ fn import_watson_frame(conn: &Connection, frame: Frame) -> rusqlite::Result<()> 
             stopped_on: Some(frame.stop),
         },
     )?;
+
+    for tag in frame.tags {
+        let tag_id = match db::tag_get_id_by_name_and_project_id(conn, &tag, project_id)? {
+            None => db::tag_create(
+                conn,
+                db::TagCreate {
+                    title: tag,
+                    project_id,
+                },
+            )?,
+            Some(t) => t,
+        };
+        println!("tag id: {}", tag_id);
+        db::tag_assign_to_timeslice(conn, tag_id, timeslice_id)?;
+    }
 
     Ok(())
 }

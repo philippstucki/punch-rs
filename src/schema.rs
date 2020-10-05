@@ -15,7 +15,7 @@ fn migration_1_initial_structure(conn: &Connection) -> Result<bool> {
             tag_id INTEGER PRIMARY KEY NOT NULL,
             title TEXT NOT NULL,
             project_id INTEGER NOT NULL,
-            FOREIGN KEY (project_id) REFERENCES project (project_id)
+            FOREIGN KEY (project_id) REFERENCES project(project_id)
         );
         CREATE UNIQUE INDEX tag_project_unique ON tag (title, project_id);
 
@@ -34,6 +34,12 @@ fn migration_1_initial_structure(conn: &Connection) -> Result<bool> {
 fn migration_2_project_tags(conn: &Connection) -> Result<bool> {
     conn.execute_batch(
         "
+        CREATE TABLE timeslice_tag (
+            timeslice_id INTEGER NOT NULL,
+            tag_id INTEGER NOT NULL,
+            FOREIGN KEY (timeslice_id) REFERENCES timeslice(timeslice_id),
+            FOREIGN KEY (tag_id) REFERENCES tag(tag_id)
+        );
         ",
     )?;
     Ok(true)

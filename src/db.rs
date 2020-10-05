@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection, OptionalExtension, Result};
+use rusqlite::{named_params, params, Connection, OptionalExtension, Result};
 
 // project
 /////////////////////////////
@@ -52,6 +52,42 @@ pub fn timeslice_create(conn: &Connection, timeslice: Timeslice) -> Result<i64> 
     conn.execute(
         "INSERT INTO timeslice (project_id, started_on, stopped_on) VALUES (?1, ?2, ?3);",
         params,
+    )?;
+    Ok(conn.last_insert_rowid())
+}
+
+// tag
+/////////////////////////////
+pub fn tag_get_id_by_name_and_project_id(
+    conn: &Connection,
+    tag_title: &str,
+    project_id: i64,
+) -> Result<Option<i64>> {
+    Ok(conn
+        .query_row_named(
+            "SELECT tag_id FROM tag WHERE title = :title AND project_id = :project_id",
+            named_params! {":title": tag_title, ":project_id": project_id},
+            |row| row.get(0),
+        )
+        .optional()?)
+}
+
+pub struct TagCreate {
+    pub title: String,
+    pub project_id: i64,
+}
+pub fn tag_create(conn: &Connection, tag: TagCreate) -> Result<i64> {
+    conn.execute_named(
+        "INSERT INTO tag (title, project_id) VALUES (:title, :project_id)",
+        named_params! {":title":tag.title, ":project_id":tag.project_id},
+    )?;
+    Ok(conn.last_insert_rowid())
+}
+
+pub fn tag_assign_to_timeslice(conn: &Connection, tag_id: i64, timeslice_id: i64) -> Result<i64> {
+    conn.execute_named(
+        "INSERT INTO timeslice_tag (tag_id, timeslice_id) VALUES (:tag_id, :timeslice_id)",
+        named_params! {":tag_id": tag_id, ":timeslice_id": timeslice_id},
     )?;
     Ok(conn.last_insert_rowid())
 }
