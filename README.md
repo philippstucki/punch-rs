@@ -44,14 +44,15 @@ Note: currently tags are not supported and will not be imported!
 # Todo
 
 - [ ] add filters to limit output for `log` and `summarize` commands
-- [ ] add colored output
 - [ ] use locale when displaying dates in grouped output
-- [ ] add n2n relation timeslice <==> tag
-- [ ] import tags from watson frames
+- [ ] add a way to edit existing slices (start/stop/tags)
 - [ ] ensure db consistency s.t. only one slice can be in running state. using a trigger on insert/update?
 
 # Done
 
+- [x] add colored output
+- [x] add n2n relation timeslice <==> tag
+- [x] import tags from watson frames
 - [x] add start command
 - [x] add stop command
 - [x] add command / output similar to `watson log`
