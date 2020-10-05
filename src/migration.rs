@@ -1,12 +1,11 @@
-use rusqlite::{Connection, OptionalExtension, Result, NO_PARAMS};
 use log::debug;
+use rusqlite::{Connection, OptionalExtension, Result, NO_PARAMS};
 
-pub struct Migration<MFN>
-where
-    MFN: Fn(&Connection) -> Result<bool>,
-{
+type MigrationFunction = fn(&Connection) -> Result<bool>;
+
+pub struct Migration {
     pub id: u64,
-    pub migration_fn: MFN,
+    pub migration_fn: MigrationFunction,
 }
 
 pub fn create_schema_migrations_table(conn: &Connection) -> Result<usize> {
@@ -34,12 +33,9 @@ fn has_migration(conn: &Connection, id: u64) -> Result<bool> {
     }
 }
 
-fn execute_migration<MF>(conn: &mut Connection, migration: Migration<MF>) -> Result<()>
-where
-    MF: Fn(&Connection) -> Result<bool>,
-{
+fn execute_migration(conn: &mut Connection, migration: Migration) -> Result<()> {
     if !has_migration(conn, migration.id)? {
-        debug!("Checking for migration #{}", migration.id);
+        debug!("applying migration #{}", migration.id);
         let tx = conn.transaction()?;
         (migration.migration_fn)(&tx)?;
         tx.execute(
@@ -51,10 +47,7 @@ where
     Ok(())
 }
 
-pub fn execute_migrations<MF>(conn: &mut Connection, migrations: Vec<Migration<MF>>) -> Result<()>
-where
-    MF: Fn(&Connection) -> Result<bool>,
-{
+pub fn execute_migrations(conn: &mut Connection, migrations: Vec<Migration>) -> Result<()> {
     create_schema_migrations_table(&conn)?;
 
     migrations

@@ -2,8 +2,6 @@ use crate::migration;
 use rusqlite::{Connection, Result};
 
 fn migration_1_initial_structure(conn: &Connection) -> Result<bool> {
-    println!("Executing migration 1: initial structure");
-
     conn.execute_batch(
         "
         CREATE TABLE project (
@@ -33,11 +31,27 @@ fn migration_1_initial_structure(conn: &Connection) -> Result<bool> {
     Ok(true)
 }
 
+fn migration_2_project_tags(conn: &Connection) -> Result<bool> {
+    conn.execute_batch(
+        "
+        ",
+    )?;
+    Ok(true)
+}
+
 pub fn migrate(conn: &mut Connection) -> Result<()> {
-    let migrations = vec![migration::Migration {
-        id: 1,
-        migration_fn: migration_1_initial_structure,
-    }];
-    migration::execute_migrations(conn, migrations)?;
+    migration::execute_migrations(
+        conn,
+        vec![
+            migration::Migration {
+                id: 1,
+                migration_fn: migration_1_initial_structure,
+            },
+            migration::Migration {
+                id: 2,
+                migration_fn: migration_2_project_tags,
+            },
+        ],
+    )?;
     Ok(())
 }
