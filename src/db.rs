@@ -60,13 +60,13 @@ pub fn timeslice_create(conn: &Connection, timeslice: Timeslice) -> Result<i64> 
 /////////////////////////////
 pub fn tag_get_id_by_name_and_project_id(
     conn: &Connection,
-    tag_title: &str,
+    title: &str,
     project_id: i64,
 ) -> Result<Option<i64>> {
     Ok(conn
         .query_row_named(
             "SELECT tag_id FROM tag WHERE title = :title AND project_id = :project_id",
-            named_params! {":title": tag_title, ":project_id": project_id},
+            named_params! {":title": title, ":project_id": project_id},
             |row| row.get(0),
         )
         .optional()?)
@@ -82,6 +82,15 @@ pub fn tag_create(conn: &Connection, tag: TagCreate) -> Result<i64> {
         named_params! {":title":tag.title, ":project_id":tag.project_id},
     )?;
     Ok(conn.last_insert_rowid())
+}
+
+pub fn tag_get_id_or_create(conn: &Connection, tag: TagCreate) -> Result<i64> {
+    Ok(
+        match tag_get_id_by_name_and_project_id(conn, &tag.title, tag.project_id)? {
+            None => tag_create(conn, tag)?,
+            Some(t) => t,
+        },
+    )
 }
 
 pub struct TimesliceTagCreate {

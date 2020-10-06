@@ -39,7 +39,7 @@ fn get_running_slice(conn: &Connection) -> Result<Option<RunningTimeslice>, Box<
     }
 }
 
-pub fn start_command(conn: &mut Connection, project_name: &str) -> Result<(), Box<dyn Error>> {
+pub fn start_command(conn: &mut Connection, project_name: &str, tags: Vec<&str>) -> Result<(), Box<dyn Error>> {
     match get_running_slice(conn)? {
         None => {
             let tx = conn.transaction()?;
@@ -47,7 +47,8 @@ pub fn start_command(conn: &mut Connection, project_name: &str) -> Result<(), Bo
                 Some(project) => project.id,
                 None => db::project_create(&tx, project_name)?,
             };
-            db::timeslice_create(
+
+            let timeslice_id = db::timeslice_create(
                 &tx,
                 db::Timeslice {
                     id: None,
@@ -56,6 +57,19 @@ pub fn start_command(conn: &mut Connection, project_name: &str) -> Result<(), Bo
                     stopped_on: None,
                 },
             )?;
+
+            for tag in tags.into_iter() {
+                let tag_id = db::tag_get_id_or_create(&tx, db::TagCreate {
+                    project_id,
+                    title: tag.to_string()
+                })?;
+
+                db::tag_assign_to_timeslice(&tx, db::TimesliceTagCreate{
+                    tag_id,
+                    timeslice_id
+                })?;
+            };
+
             tx.commit()?;
         }
         Some(slice) => println!(

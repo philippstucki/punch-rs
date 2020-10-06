@@ -4,6 +4,7 @@ use rusqlite::{Connection, Result, NO_PARAMS};
 use std::error::Error;
 use std::path::Path;
 
+mod colors;
 mod datetime;
 mod db;
 mod import;
@@ -13,7 +14,6 @@ mod schema;
 mod startstop;
 mod summarize;
 mod tinylogger;
-mod colors;
 
 const DEFAULT_DB_FILE: &'static str = "./punch.sqlite";
 
@@ -71,9 +71,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .arg(
                     Arg::with_name("project")
                         .required(true)
-                        .index(1)
                         .help("project name"),
-                ),
+                )
+                .arg(Arg::with_name("tags").multiple(true).help("tags")),
         )
         .subcommand(SubCommand::with_name("stop").about("stop currently running slice"))
         .subcommand(
@@ -99,7 +99,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if let Some(start_matches) = matches.subcommand_matches("start") {
         if let Some(project_name) = start_matches.value_of("project") {
-            startstop::start_command(&mut get_connection(db_filename)?, project_name)?;
+            let tags = match start_matches.values_of("tags") {
+                Some(tags) => tags.collect(),
+                None => vec![],
+            };
+            startstop::start_command(&mut get_connection(db_filename)?, project_name, tags)?;
         }
     }
 
