@@ -73,7 +73,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .required(true)
                         .help("project name"),
                 )
-                .arg(Arg::with_name("tags").multiple(true).help("tags")),
+                .arg(
+                    Arg::with_name("tag")
+                        .help("tags")
+                        .multiple(true)
+                        .takes_value(true)
+                        .short("t"),
+                ),
         )
         .subcommand(SubCommand::with_name("stop").about("stop currently running slice"))
         .subcommand(
@@ -99,7 +105,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if let Some(start_matches) = matches.subcommand_matches("start") {
         if let Some(project_name) = start_matches.value_of("project") {
-            let tags = match start_matches.values_of("tags") {
+            let tags = match start_matches.values_of("tag") {
                 Some(tags) => tags.collect(),
                 None => vec![],
             };

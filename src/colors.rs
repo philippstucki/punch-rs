@@ -6,6 +6,7 @@ pub trait Colors {
     fn color_project(self) -> ColoredString;
     fn color_time(self) -> ColoredString;
     fn color_duration(self) -> ColoredString;
+    fn color_tag(self) -> ColoredString;
 }
 
 impl<'a> Colors for &'a str {
@@ -20,5 +21,8 @@ impl<'a> Colors for &'a str {
     }
     fn color_duration(self) -> ColoredString {
         self.to_string().to_string().white()
+    }
+    fn color_tag(self) -> ColoredString {
+        self.to_string().to_string().bright_magenta()
     }
 }
