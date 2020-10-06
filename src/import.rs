@@ -60,7 +60,13 @@ fn import_watson_frame(conn: &Connection, frame: Frame) -> rusqlite::Result<()> 
             Some(t) => t,
         };
         println!("tag id: {}", tag_id);
-        db::tag_assign_to_timeslice(conn, tag_id, timeslice_id)?;
+        db::tag_assign_to_timeslice(
+            conn,
+            db::TimesliceTagCreate {
+                tag_id,
+                timeslice_id,
+            },
+        )?;
     }
 
     Ok(())

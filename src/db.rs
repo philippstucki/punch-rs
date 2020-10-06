@@ -84,10 +84,17 @@ pub fn tag_create(conn: &Connection, tag: TagCreate) -> Result<i64> {
     Ok(conn.last_insert_rowid())
 }
 
-pub fn tag_assign_to_timeslice(conn: &Connection, tag_id: i64, timeslice_id: i64) -> Result<i64> {
+pub struct TimesliceTagCreate {
+    pub tag_id: i64,
+    pub timeslice_id: i64,
+}
+pub fn tag_assign_to_timeslice(
+    conn: &Connection,
+    timeslice_tag: TimesliceTagCreate,
+) -> Result<i64> {
     conn.execute_named(
         "INSERT INTO timeslice_tag (tag_id, timeslice_id) VALUES (:tag_id, :timeslice_id)",
-        named_params! {":tag_id": tag_id, ":timeslice_id": timeslice_id},
+        named_params! {":tag_id": timeslice_tag.tag_id, ":timeslice_id": timeslice_tag.timeslice_id},
     )?;
     Ok(conn.last_insert_rowid())
 }
