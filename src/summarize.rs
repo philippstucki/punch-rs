@@ -27,17 +27,17 @@ pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
         SELECT
-            t.project_id,
-            strftime(\"%Y-%m-%d\",stopped_on) group_period,
-            p.title,
+            project_id,
+            strftime('%Y-%m-%d',stopped_on) group_period,
+            project.title,
             CAST(
-                total((strftime(\"%J\",stopped_on)-strftime(\"%J\",started_on))*24*3600)
+                total((strftime('%J',stopped_on)-strftime('%J',started_on))*24*3600)
                 AS INTEGER
             )  AS duration,
             max(stopped_on) AS row_order
-        FROM timeslice t
-        JOIN project p USING(project_id)
-        GROUP BY group_period, t.project_id
+        FROM timeslice
+        JOIN project USING(project_id)
+        GROUP BY group_period, timeslice.project_id
         ORDER BY group_period, row_order ASC
     ",
     )?;
