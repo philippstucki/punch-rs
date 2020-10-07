@@ -29,6 +29,7 @@ struct LogTimeslice {
     stopped_on: DateTime<Local>,
     duration: Duration,
     project_name: String,
+    tags: Vec<String>,
 }
 
 impl LogTimeslice {
@@ -38,6 +39,7 @@ impl LogTimeslice {
         started_on: &str,
         stopped_on: &str,
         project_name: &str,
+        tags: &str,
     ) -> LogTimeslice {
         let started_on = datetime::as_local(datetime::from_rfc3339_string(started_on));
         let stopped_on = datetime::as_local(datetime::from_rfc3339_string(stopped_on));
@@ -49,6 +51,11 @@ impl LogTimeslice {
             stopped_on,
             duration: stopped_on - started_on,
             project_name: String::from(project_name),
+            tags: if tags.len() > 0 {
+                tags.split(",").map(|tag| tag.to_string()).collect()
+            } else {
+                vec![]
+            },
         }
     }
 }
@@ -66,15 +73,19 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
         SELECT
-            t.timeslice_id,
-            date(t.stopped_on) day,
-            t.started_on,
-            t.stopped_on,
-            p.title
-        FROM timeslice t
-        JOIN project p USING(project_id)
+            timeslice_id,
+            date(stopped_on) day,
+            started_on,
+            stopped_on,
+            project.title,
+            COALESCE(GROUP_CONCAT(tag.title), '')
+        FROM timeslice
+        JOIN project USING(project_id)
+        LEFT JOIN timeslice_tag USING(timeslice_id)
+		LEFT JOIN tag USING(tag_id)
         WHERE stopped_on IS NOT NULL
-        ORDER BY day desc
+        GROUP BY timeslice_id
+        ORDER BY day DESC
     ",
     )?;
 
@@ -86,6 +97,7 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
                 &*row.get::<_, String>(2)?,
                 &*row.get::<_, String>(3)?,
                 &*row.get::<_, String>(4)?,
+                &*row.get::<_, String>(5)?,
             ))
         })?
         .map(|r| r.unwrap())
@@ -95,14 +107,19 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         println!("{}\n", day.to_string().color_heading());
 
         for slice in slices {
+            let tags = match slice.tags.len() > 0 {
+                true => format!("({})", slice.tags.join(", ").color_tag()),
+                false => String::from(""),
+            };
             println!(
-                "    {started_on} — {stopped_on} {duration:>14} {project_name}",
+                "    {started_on} — {stopped_on} {duration:>14} {project_name} {tags}",
                 started_on = slice.started_on.format("%H:%M:%S").to_string().color_time(),
                 stopped_on = slice.stopped_on.format("%H:%M:%S").to_string().color_time(),
                 duration = datetime::duration_as_hms_string(&slice.duration)?
                     .to_string()
                     .color_duration(),
-                project_name = slice.project_name.to_string().color_project()
+                project_name = slice.project_name.to_string().color_project(),
+                tags = tags
             );
         }
 

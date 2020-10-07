@@ -43,7 +43,7 @@ fn get_running_slice(conn: &Connection) -> Result<Option<RunningTimeslice>, Box<
 pub fn start_command(
     conn: &mut Connection,
     project_name: &str,
-    tags: Vec<&str>,
+    tags: &Vec<&str>,
 ) -> Result<(), Box<dyn Error>> {
     match get_running_slice(conn)? {
         None => {
@@ -63,7 +63,7 @@ pub fn start_command(
                 },
             )?;
 
-            for tag in tags.clone().into_iter() {
+            for tag in tags.into_iter() {
                 let tag_id = db::tag_get_id_or_create(
                     &tx,
                     db::TagCreate {

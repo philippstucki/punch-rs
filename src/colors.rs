@@ -23,6 +23,6 @@ impl<'a> Colors for &'a str {
         self.to_string().to_string().white()
     }
     fn color_tag(self) -> ColoredString {
-        self.to_string().to_string().bright_magenta()
+        self.to_string().to_string().blue()
     }
 }

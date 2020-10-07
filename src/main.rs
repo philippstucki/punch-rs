@@ -109,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Some(tags) => tags.collect(),
                 None => vec![],
             };
-            startstop::start_command(&mut get_connection(db_filename)?, project_name, tags)?;
+            startstop::start_command(&mut get_connection(db_filename)?, project_name, &tags)?;
         }
     }
 
