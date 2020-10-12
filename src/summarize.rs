@@ -1,33 +1,31 @@
 use chrono::{Duration, NaiveDate};
 use itertools::Itertools;
-use rusqlite::{Connection, NO_PARAMS};
+use rusqlite::{named_params, Connection, NO_PARAMS};
 use std::error::Error;
 use std::result::Result;
 
 use crate::colors::Colors;
 use crate::datetime;
 
-#[derive(Debug)]
-struct SummaryRow {
-    project_id: i64,
-    group_day: NaiveDate,
-    total_time: Duration,
-    project_title: String,
-}
-
-fn group_rows_by_period(rows: Vec<SummaryRow>) -> Vec<(NaiveDate, Vec<SummaryRow>)> {
+fn group_rows_by_period(rows: Vec<PeriodSummaryRow>) -> Vec<(NaiveDate, Vec<PeriodSummaryRow>)> {
     rows.into_iter()
-        .group_by(|row| row.group_day.clone())
+        .group_by(|row| row.period.clone())
         .into_iter()
-        .map(|(day, day_rows)| (day, day_rows.collect()))
+        .map(|(period, period_rows)| (period, period_rows.collect()))
         .collect()
 }
 
-pub fn get_tag_summary_for_project(
-    conn: &mut Connection,
+#[derive(Debug)]
+struct TagSummary {
+    tag_title: String,
+    total_time: Duration,
+}
+
+fn get_tag_summary(
+    conn: &Connection,
     project_id: i64,
     period: NaiveDate,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<Vec<TagSummary>, Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
         SELECT
@@ -42,15 +40,38 @@ pub fn get_tag_summary_for_project(
         LEFT JOIN timeslice USING(timeslice_id)
         WHERE
             stopped_on IS NOT NULL
-            AND strftime('%Y-%m-%d',stopped_on) = '2020-10-06'
-            AND timeslice.project_id=13
+            AND strftime('%Y-%m-%d',stopped_on) = :period
+            AND timeslice.project_id = :project_id
             AND tag.title IS NOT NULL
         GROUP BY tag.tag_id
     ",
     )?;
-    Ok(())
+
+    let rows = stmt
+        .query_map_named(
+            named_params! {
+                ":project_id": project_id,
+                ":period": period.format("%Y-%m-%d").to_string(),
+            },
+            |row| {
+                Ok(TagSummary {
+                    tag_title: row.get::<_, String>(0)?,
+                    total_time: Duration::seconds(row.get(1)?),
+                })
+            },
+        )?
+        .map(|row| row.unwrap())
+        .collect();
+    Ok(rows)
 }
 
+#[derive(Debug)]
+struct PeriodSummaryRow {
+    project_id: i64,
+    period: NaiveDate,
+    total_time: Duration,
+    project_title: String,
+}
 pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
@@ -73,21 +94,20 @@ pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
 
     let rows = stmt
         .query_map(NO_PARAMS, |row| {
-            Ok(SummaryRow {
+            Ok(PeriodSummaryRow {
                 project_id: row.get(0)?,
-                group_day: NaiveDate::parse_from_str(&*row.get::<_, String>(1)?, "%Y-%m-%d")
-                    .unwrap(),
+                period: NaiveDate::parse_from_str(&*row.get::<_, String>(1)?, "%Y-%m-%d").unwrap(),
                 project_title: row.get::<_, String>(2)?,
                 total_time: Duration::seconds(row.get(3)?),
             })
         })?
         .map(|row| row.unwrap())
-        .collect::<Vec<SummaryRow>>();
+        .collect::<Vec<PeriodSummaryRow>>();
 
     for (period, rows) in group_rows_by_period(rows) {
         println!(
-            "{group_day}",
-            group_day = period.format("%Y-%m-%d").to_string().color_heading()
+            "\n{period}",
+            period = period.format("%Y-%m-%d").to_string().color_heading()
         );
         for row in rows {
             println!(
@@ -97,8 +117,19 @@ pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
                     .to_string()
                     .color_duration()
             );
+
+            let tag_summary = get_tag_summary(conn, row.project_id, row.period)?;
+            for tag in &tag_summary {
+                println!(
+                    "      {tag_title:<18} {duration:>14}",
+                    tag_title = tag.tag_title.color_tag(),
+                    duration = datetime::duration_as_hms_string(&tag.total_time)?.color_duration()
+                )
+            }
+            if tag_summary.len() > 0 {
+                println!("\n");
+            }
         }
-        println!("\n");
     }
 
     Ok(())
