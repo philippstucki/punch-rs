@@ -88,7 +88,7 @@ pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         JOIN project USING(project_id)
         WHERE stopped_on IS NOT NULL
         GROUP BY group_period, timeslice.project_id
-        ORDER BY group_period, row_order ASC
+        ORDER BY group_period, row_order DESC
     ",
     )?;
 
