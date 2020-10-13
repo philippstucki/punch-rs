@@ -2,7 +2,9 @@
 use clap::{App, AppSettings, Arg, SubCommand};
 use rusqlite::{Connection, Result, NO_PARAMS};
 use std::error::Error;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+// use std::result::Result;
+use xdg;
 
 mod colors;
 mod datetime;
@@ -15,17 +17,22 @@ mod startstop;
 mod summarize;
 mod tinylogger;
 
-const DEFAULT_DB_FILE: &'static str = "./punch.sqlite";
+// const DEFAULT_DB_FILE: &'static str = "./punch.sqlite";
 
-fn get_db_filename<'a>(default_value: &'a str, option_value: Option<&'a str>) -> &'a str {
+fn get_default_db_filename() -> PathBuf {
+    let xdirs = xdg::BaseDirectories::with_prefix("punch").unwrap();
+    xdirs.place_data_file("punch.sqlite").unwrap()
+}
+
+fn get_db_filename<'a>(default_value: PathBuf, option_value: Option<&'a str>) -> PathBuf {
     match option_value {
-        Some(v) => v,
+        Some(v) => Path::new(v).to_path_buf(),
         None => default_value,
     }
 }
 
-fn get_connection(filename: &str) -> Result<Connection> {
-    let mut conn = Connection::open(Path::new(filename))?;
+fn get_connection(filename: PathBuf) -> Result<Connection> {
+    let mut conn = Connection::open(filename)?;
     conn.execute("PRAGMA foreign_keys = ON;", NO_PARAMS)?;
     schema::migrate(&mut conn)?;
     Ok(conn)
@@ -87,20 +94,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
-    let db_filename = get_db_filename(DEFAULT_DB_FILE, matches.value_of("dbfile"));
+    let db_filename = get_db_filename(get_default_db_filename(), matches.value_of("dbfile"));
 
     tinylogger::init(matches.is_present("verbose"))?;
 
     if let Some(import_matches) = matches.subcommand_matches("import") {
         if let Some(import_file) = import_matches.value_of("file") {
             println!("importing from file: {}", import_file);
-            let mut conn = get_connection(db_filename)?;
+            let mut conn = get_connection(db_filename.clone())?;
             import::import_watson_frames(&mut conn, import_file)?;
         }
     }
 
     if let Some(_args) = matches.subcommand_matches("log") {
-        log::log_command(&mut get_connection(db_filename)?)?;
+        log::log_command(&mut get_connection(db_filename.clone())?)?;
     }
 
     if let Some(start_matches) = matches.subcommand_matches("start") {
@@ -109,16 +116,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Some(tags) => tags.collect(),
                 None => vec![],
             };
-            startstop::start_command(&mut get_connection(db_filename)?, project_name, &tags)?;
+            startstop::start_command(&mut get_connection(db_filename.clone())?, project_name, &tags)?;
         }
     }
 
     if let Some(_args) = matches.subcommand_matches("stop") {
-        startstop::stop_command(&mut get_connection(db_filename)?)?;
+        startstop::stop_command(&mut get_connection(db_filename.clone())?)?;
     }
 
     if let Some(_args) = matches.subcommand_matches("summarize") {
-        summarize::summarize_command(&mut get_connection(db_filename)?)?;
+        summarize::summarize_command(&mut get_connection(db_filename.clone())?)?;
     }
 
     Ok(())
