@@ -85,7 +85,7 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
 		LEFT JOIN tag USING(tag_id)
         WHERE stopped_on IS NOT NULL
         GROUP BY timeslice_id
-        ORDER BY day DESC
+        ORDER BY day ASC
     ",
     )?;
 
