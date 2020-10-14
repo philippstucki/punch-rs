@@ -2,15 +2,20 @@ use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Write;
 
-use chrono::{DateTime, Duration, FixedOffset, Local, TimeZone, Utc};
+const DATE_FORMAT: &'static str = "%a %d %B %Y";
+
+use chrono::{DateTime, Duration, FixedOffset, Local, NaiveDate, TimeZone, Utc};
 
 pub fn from_rfc3339_string(as_string: &str) -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339(as_string).unwrap()
 }
 
-#[allow(dead_code)]
-pub fn from_ymd_string(as_string: &str) -> DateTime<FixedOffset> {
-    DateTime::parse_from_str(as_string, "%Y-%m-%d").unwrap()
+pub fn naivedate_from_string(as_string: &str) -> NaiveDate {
+    NaiveDate::parse_from_str(as_string, "%Y-%m-%d").unwrap()
+}
+
+pub fn naivedate_format(d: NaiveDate) -> String {
+    format!("{}", d.format(DATE_FORMAT))
 }
 
 pub fn as_local<T: TimeZone>(dt: DateTime<T>) -> DateTime<Local> {
@@ -22,11 +27,31 @@ pub fn as_utc<T: TimeZone>(dt: DateTime<T>) -> DateTime<Utc> {
     dt.with_timezone(&Utc)
 }
 
-pub fn format_as_hms<T: TimeZone>(dt: DateTime<T>) -> String
+pub fn datetime_as_time_string<T: TimeZone>(dt: &DateTime<T>) -> String
 where
     T::Offset: Display,
 {
     format!("{}", dt.format("%H:%M:%S"))
+}
+
+#[allow(dead_code)]
+pub fn datetime_as_date_string<T: TimeZone>(dt: &DateTime<T>) -> String
+where
+    T::Offset: Display,
+{
+    format!("{}", dt.format("%A %F"))
+}
+
+#[allow(dead_code)]
+pub fn datetime_as_datetime_string<T: TimeZone>(dt: DateTime<T>) -> String
+where
+    T::Offset: Display,
+{
+    format!(
+        "{} {}",
+        datetime_as_date_string(&dt),
+        datetime_as_time_string(&dt)
+    )
 }
 
 pub fn duration_as_hms_string(duration: &Duration) -> Result<String, Box<dyn Error>> {

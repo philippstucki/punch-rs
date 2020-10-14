@@ -96,7 +96,7 @@ pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         .query_map(NO_PARAMS, |row| {
             Ok(PeriodSummaryRow {
                 project_id: row.get(0)?,
-                period: NaiveDate::parse_from_str(&*row.get::<_, String>(1)?, "%Y-%m-%d").unwrap(),
+                period: datetime::naivedate_from_string(&*row.get::<_, String>(1)?),
                 project_title: row.get::<_, String>(2)?,
                 total_time: Duration::seconds(row.get(3)?),
             })
@@ -107,7 +107,7 @@ pub fn summarize_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
     for (period, rows) in group_rows_by_period(rows) {
         println!(
             "\n{period}",
-            period = period.format("%Y-%m-%d").to_string().color_heading()
+            period = datetime::naivedate_format(period).color_heading()
         );
         for row in rows {
             println!(

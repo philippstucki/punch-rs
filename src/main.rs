@@ -17,8 +17,6 @@ mod startstop;
 mod summarize;
 mod tinylogger;
 
-// const DEFAULT_DB_FILE: &'static str = "./punch.sqlite";
-
 fn get_default_db_filename() -> PathBuf {
     let xdirs = xdg::BaseDirectories::with_prefix("punch").unwrap();
     xdirs.place_data_file("punch.sqlite").unwrap()

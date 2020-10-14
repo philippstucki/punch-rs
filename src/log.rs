@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Duration, Local, NaiveDate};
 use itertools::Itertools;
 use rusqlite::{Connection, NO_PARAMS};
 use std::error::Error;
@@ -24,7 +24,7 @@ use crate::datetime;
 #[derive(Debug)]
 struct LogTimeslice {
     id: i64,
-    day: String,
+    day: NaiveDate,
     started_on: DateTime<Local>,
     stopped_on: DateTime<Local>,
     duration: Duration,
@@ -46,7 +46,7 @@ impl LogTimeslice {
 
         LogTimeslice {
             id,
-            day: String::from(day),
+            day: datetime::naivedate_from_string(day),
             started_on,
             stopped_on,
             duration: stopped_on - started_on,
@@ -60,7 +60,7 @@ impl LogTimeslice {
     }
 }
 
-fn group_slices_by_day(slices: Vec<LogTimeslice>) -> Vec<(String, Vec<LogTimeslice>)> {
+fn group_slices_by_day(slices: Vec<LogTimeslice>) -> Vec<(NaiveDate, Vec<LogTimeslice>)> {
     slices
         .into_iter()
         .group_by(|r| r.day.clone())
@@ -104,7 +104,10 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         .collect::<Vec<LogTimeslice>>();
 
     for (day, slices) in group_slices_by_day(slices) {
-        println!("{}\n", day.to_string().color_heading());
+        println!(
+            "{}\n",
+            datetime::naivedate_format(day).color_heading()
+        );
 
         for slice in slices {
             let tags = match slice.tags.len() > 0 {

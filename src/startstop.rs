@@ -90,7 +90,7 @@ pub fn start_command(
         Some(slice) => println!(
             "Slice already running for project {} started on {}",
             slice.project_name,
-            datetime::format_as_hms(slice.started_on)
+            datetime::datetime_as_time_string(&slice.started_on)
         ),
     };
     Ok(())
