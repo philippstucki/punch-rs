@@ -1,11 +1,12 @@
 use chrono::{DateTime, Duration, Local, NaiveDate};
 use itertools::Itertools;
-use rusqlite::{Connection, NO_PARAMS};
+use rusqlite::{named_params, Connection};
 use std::error::Error;
 use std::result::Result;
 
 use crate::colors::Colors;
 use crate::datetime;
+use crate::filter::Filter;
 
 /*
 # output format:
@@ -69,7 +70,7 @@ fn group_slices_by_day(slices: Vec<LogTimeslice>) -> Vec<(NaiveDate, Vec<LogTime
         .collect()
 }
 
-pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
+pub fn log_command(conn: &mut Connection, filter: &Filter) -> Result<(), Box<dyn Error>> {
     let mut stmt = conn.prepare(
         "
         SELECT
@@ -83,14 +84,22 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         JOIN project USING(project_id)
         LEFT JOIN timeslice_tag USING(timeslice_id)
 		LEFT JOIN tag USING(tag_id)
-        WHERE stopped_on IS NOT NULL
+        WHERE
+            stopped_on IS NOT NULL
+            AND stopped_on >= :filter_from_date
         GROUP BY timeslice_id
         ORDER BY day ASC
     ",
     )?;
 
+    let from_date = filter
+        .from
+        .unwrap_or(datetime::timestamp_1970())
+        .format(datetime::DATE_FORMAT_YMD)
+        .to_string();
+
     let slices = stmt
-        .query_map(NO_PARAMS, |row| {
+        .query_map_named(named_params! {":filter_from_date": from_date}, |row| {
             Ok(LogTimeslice::new(
                 row.get(0)?,
                 &*row.get::<_, String>(1)?,
@@ -104,10 +113,7 @@ pub fn log_command(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
         .collect::<Vec<LogTimeslice>>();
 
     for (day, slices) in group_slices_by_day(slices) {
-        println!(
-            "{}\n",
-            datetime::naivedate_format(day).color_heading()
-        );
+        println!("{}\n", datetime::naivedate_format(day).color_heading());
 
         for slice in slices {
             let tags = match slice.tags.len() > 0 {

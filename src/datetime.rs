@@ -1,10 +1,15 @@
+use chrono::{DateTime, Duration, FixedOffset, Local, NaiveDate, TimeZone, Utc};
+
 use std::error::Error;
 use std::fmt::Display;
 use std::fmt::Write;
 
-const DATE_FORMAT: &'static str = "%a %d %B %Y";
+const DATE_FORMAT: &str = "%a %d %B %Y";
+pub const DATE_FORMAT_YMD: &str = "%F";
 
-use chrono::{DateTime, Duration, FixedOffset, Local, NaiveDate, TimeZone, Utc};
+pub fn timestamp_1970() -> DateTime<Utc> {
+    Utc.timestamp(0, 0)
+}
 
 pub fn from_rfc3339_string(as_string: &str) -> DateTime<FixedOffset> {
     DateTime::parse_from_rfc3339(as_string).unwrap()
@@ -32,26 +37,6 @@ where
     T::Offset: Display,
 {
     format!("{}", dt.format("%H:%M:%S"))
-}
-
-#[allow(dead_code)]
-pub fn datetime_as_date_string<T: TimeZone>(dt: &DateTime<T>) -> String
-where
-    T::Offset: Display,
-{
-    format!("{}", dt.format("%A %F"))
-}
-
-#[allow(dead_code)]
-pub fn datetime_as_datetime_string<T: TimeZone>(dt: DateTime<T>) -> String
-where
-    T::Offset: Display,
-{
-    format!(
-        "{} {}",
-        datetime_as_date_string(&dt),
-        datetime_as_time_string(&dt)
-    )
 }
 
 pub fn duration_as_hms_string(duration: &Duration) -> Result<String, Box<dyn Error>> {

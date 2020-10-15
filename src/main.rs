@@ -1,4 +1,5 @@
 // #[allow(unused_variables, unused_imports)]
+use chrono::{Duration, Utc};
 use clap::{App, AppSettings, Arg, SubCommand};
 use rusqlite::{Connection, Result, NO_PARAMS};
 use std::error::Error;
@@ -9,6 +10,7 @@ use xdg;
 mod colors;
 mod datetime;
 mod db;
+mod filter;
 mod import;
 mod log;
 mod migration;
@@ -105,7 +107,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if let Some(_args) = matches.subcommand_matches("log") {
-        log::log_command(&mut get_connection(db_filename.clone())?)?;
+        let filter = filter::Filter {
+            from: Some(Utc::now() - Duration::days(7)),
+            to: None,
+        };
+        log::log_command(&mut get_connection(db_filename.clone())?, &filter)?;
     }
 
     if let Some(start_matches) = matches.subcommand_matches("start") {
@@ -114,7 +120,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Some(tags) => tags.collect(),
                 None => vec![],
             };
-            startstop::start_command(&mut get_connection(db_filename.clone())?, project_name, &tags)?;
+            startstop::start_command(
+                &mut get_connection(db_filename.clone())?,
+                project_name,
+                &tags,
+            )?;
         }
     }
 
