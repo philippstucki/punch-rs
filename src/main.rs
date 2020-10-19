@@ -71,7 +71,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .help("input file to use for import"),
                 ),
         )
-        .subcommand(SubCommand::with_name("log").about("log recent work"))
+        .subcommand(
+            SubCommand::with_name("log")
+                .about("log slices created during the last 7d")
+                .arg(
+                    Arg::with_name("all")
+                        .help("log all recorded slices")
+                        .short("a")
+                        .required(false),
+                ),
+        )
         .subcommand(
             SubCommand::with_name("start")
                 .about("start logging time")
@@ -106,11 +115,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    if let Some(_args) = matches.subcommand_matches("log") {
-        let filter = filter::Filter {
-            from: Some(Utc::now() - Duration::days(7)),
-            to: None,
-        };
+    if let Some(log_matches) = matches.subcommand_matches("log") {
+        let from = Some(if log_matches.is_present("all") {
+            datetime::timestamp_1970()
+        } else {
+            Utc::now() - Duration::days(7)
+        });
+
+        let filter = filter::Filter { from, to: None };
+
         log::log_command(&mut get_connection(db_filename.clone())?, &filter)?;
     }
 
