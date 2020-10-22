@@ -33,6 +33,7 @@ fn get_db_filename<'a>(default_value: PathBuf, option_value: Option<&'a str>) ->
 
 fn get_connection(filename: PathBuf) -> Result<Connection> {
     let mut conn = Connection::open(filename)?;
+    rusqlite::vtab::array::load_module(&conn)?;
     conn.execute("PRAGMA foreign_keys = ON;", NO_PARAMS)?;
     schema::migrate(&mut conn)?;
     Ok(conn)
@@ -99,7 +100,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         .subcommand(SubCommand::with_name("stop").about("stop currently running slice"))
         .subcommand(
-            SubCommand::with_name("summarize").about("summarize work by project and time period"),
+            SubCommand::with_name("summarize")
+                .about("Summarize work by project and time period. By default the output is grouped by day.")
+                .arg(
+                    Arg::with_name("all")
+                        .help("Create only one group containing all work ever recorded")
+                        .short("a")
+                        .required(false),
+                ),
         )
         .get_matches();
 
@@ -145,8 +153,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         startstop::stop_command(&mut get_connection(db_filename.clone())?)?;
     }
 
-    if let Some(_args) = matches.subcommand_matches("summarize") {
-        summarize::summarize_command(&mut get_connection(db_filename.clone())?)?;
+    if let Some(summarize_matches) = matches.subcommand_matches("summarize") {
+        let grouping_mode = if summarize_matches.is_present("all") {
+            summarize::GroupingMode::All
+        } else {
+            summarize::GroupingMode::Day
+        };
+        summarize::summarize_command(&mut get_connection(db_filename.clone())?, grouping_mode)?;
     }
 
     Ok(())
